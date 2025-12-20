@@ -1,3 +1,5 @@
+// ApiResponse is a standard response wrapper used to return successful API responses in a consistent format.
+
 class ApiResponse {
     constructor (statusCode , data , message = "success"){
         this.statusCode = statusCode
@@ -6,3 +8,5 @@ class ApiResponse {
         this.success = statusCode < 400
     }
 }
+
+export {ApiResponse} ; 

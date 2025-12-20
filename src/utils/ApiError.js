@@ -1,3 +1,6 @@
+// ApiError is a custom error class that extends JavaScript’s built-in Error class to provide structured, consistent API errors.
+
+
 class ApiError extends Error {
     constructor(
         statusCode,
