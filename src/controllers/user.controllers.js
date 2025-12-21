@@ -5,6 +5,29 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
+
+
+// Access token and Refresh Token - 
+
+ const generateAccessandRefreshToken = async(userId) => {
+    try {
+        const user = await User.findById(userId)
+        const AccessToken = user.generateAccessToken()
+        const RefreshToken = user.generateRefreshToken()
+
+        user.RefreshToken = RefreshToken
+        await user.save({validateBeforeSave : false})
+
+        return {AccessToken , RefreshToken}
+
+    } catch (error) {
+        throw new ApiError(500 , "something went wrong while generating the access and refresh tokens")
+    }
+ }
+
+
+
+
 const registerUser = asynchandler(async (req , res) => {
 // steps of all the work we are going to do // 
 // get user details from frontend
@@ -26,6 +49,22 @@ if(
 ) {
     throw new ApiError(400 , "All fields are Required!");
 }
+
+// This is old and lengthy mehthod (but no problem in this perfect code);
+/*
+if(fullname === ""){
+    throw new ApiError(400 , "full name is required!")
+}
+if(username === ""){
+    throw new ApiError(400 , "username is required!")
+}
+if(email === ""){
+    throw new ApiError(400 , "email is required!")
+}
+if(password === ""){
+    throw new ApiError(400 , "Password is required!")
+}
+*/
 
 // Checking if user already exits - 
 
@@ -89,22 +128,96 @@ if (existedUser) {
 
  })
 
-// This is old and lengthy mehthod (but no problem in this perfect code);
-/*
-if(fullname === ""){
-    throw new ApiError(400 , "full name is required!")
-}
-if(username === ""){
-    throw new ApiError(400 , "username is required!")
-}
-if(email === ""){
-    throw new ApiError(400 , "email is required!")
-}
-if(password === ""){
-    throw new ApiError(400 , "Password is required!")
-}
-*/
 
 
 
-export {registerUser} ; 
+ const LoginUser = asynchandler(async(req , res) => {
+// req body -> data
+// username or email
+// find the user
+// password check
+// access and refresh token
+// send cookie
+// return response 
+
+// Request body se data lana - 
+
+  const {username, email, password} = req.body
+
+  if(!username || !email){
+    throw new ApiError(400 , "Username or Email is Required!")
+  }
+
+  //find the user using username or email - 
+
+  const user = await User.findOne({
+    $or: [{username} , {email}]
+  })
+
+  if(!user) {
+    throw new ApiError(404 , "User not found!")
+  }
+
+  // Password checking 
+
+  const ispasswordValid = user.ispasswordCorrect(password);
+
+  if(!ispasswordValid){
+    throw ApiError(401 , "Password not correct!")
+  }
+
+  const {AccessToken , RefreshToken} = await generateAccessandRefreshToken(user._id)
+
+  const loggedinUser = await User.findById(User._id).select("-password -refreshToken") // With this we can select that what things we dont want to send to the user!
+  
+  // cookie sending - 
+
+  const options = {
+    httpOnly : true,
+    secure : true
+  }
+
+  return res.status()
+  .cookie("AccessToken" , AccessToken , options)
+  .cookie("RefreshToken" , RefreshToken , options)
+  .json (
+    new ApiResponse(200 , {
+        user:loggedinUser, AccessToken , RefreshToken
+    }), "User logged in Successfully"
+  )
+
+ })
+
+
+ // Logout user - 
+
+ const LogoutUser = asynchandler(async (req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id , {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    const options = {
+    httpOnly : true,
+    secure : true
+  }
+
+  return res.status(200)
+         .clearCookie("AccessToken" , options)
+         .clearCookie("RefreshToken" , options)
+         .json(new ApiResponse(200 , {} , "User Logged out Successfully"))
+
+ })
+
+ 
+
+
+
+
+export {registerUser , LoginUser , LogoutUser} ; 
