@@ -1,7 +1,7 @@
 import { asynchandler } from "../utils/asynchandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { DeleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 
@@ -292,7 +292,7 @@ if (existedUser) {
 
 
  const getCurrentUser = asynchandler(async(req , res) => {
-  return res.status(200).json(200 , req.user , "Current User Fetched Successfully")
+  return res.status(200).json(new ApiResponse (200 , req.user , "Current User Fetched Successfully"))
  })
 
 
@@ -326,13 +326,25 @@ if (existedUser) {
     throw new ApiError(400 , "Avatar file is Missing")
   }
 
+
+console.log("req.file:", req.file);
+
+  const olduser = await User.findById(req.user._id);  // this is user id before updating avatar 
+  if(!olduser){
+    throw new ApiError(404, "User not found");
+  }
+
+  const oldAvatarURL = olduser.avatar; // storing the old avatar url for deleting it from cloudinary
+
+
   const avatar = await uploadOnCloudinary(avatarlocalpath)
 
-  if(!avatar.url){
+  if(!avatar?.url){
     throw new ApiError(400 , "Error while Uploading on avatar")
   }
 
-  const user = await User.findByIdAndUpdate(req.user?._id,
+
+  const Updateduser = await User.findByIdAndUpdate(req.user?._id,
     {
       $set : {
         avatar : avatar.url
@@ -341,8 +353,18 @@ if (existedUser) {
     {new:true}
   ).select("-password")
 
-return res.status(200).json(new ApiResponse(200 , user , "Avatar Updated Successfully"))
 
+     if(oldAvatarURL){     // deleting the old avatar from cloudinary
+    try {
+
+         await DeleteOnCloudinary(oldAvatarURL); 
+
+    } catch (error) {
+      console.error("Failed to delete old avatar : " , error);
+    }
+   }
+
+return res.status(200).json(new ApiResponse(200 , Updateduser , "Avatar Updated Successfully"))
  })
 
 
@@ -350,7 +372,7 @@ return res.status(200).json(new ApiResponse(200 , user , "Avatar Updated Success
 
  const UpdateUserCoverimage = asynchandler(async (req , res) => {
   const Coverimagelocalpath = req.file?.path
-
+  
   if(!Coverimagelocalpath){
     throw new ApiError(400 , "Coverimage file is Missing")
   }

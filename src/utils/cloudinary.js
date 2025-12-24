@@ -1,5 +1,6 @@
 import {v2 as cloudinary} from "cloudinary";
 import fs from "fs";
+import { ApiError } from "./ApiError.js";
 
 cloudinary.config({ 
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME , 
@@ -26,4 +27,21 @@ cloudinary.config({
         }
     }
 
-    export {uploadOnCloudinary} ; 
+   const DeleteOnCloudinary = async (fileUrl) => {
+  try {
+    if (!fileUrl) {
+      console.log("Avatar Not Found");
+      return null;
+    }
+    const parts = fileUrl.split("/");
+    const publicId = parts[parts.length - 1].split(".")[0];
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result;
+  } catch (error) {
+    console.log("Error Deleting From Cloudinary");
+    return null;
+  }
+};
+
+
+    export {uploadOnCloudinary , DeleteOnCloudinary} ; 
