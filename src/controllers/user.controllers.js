@@ -202,8 +202,8 @@ if (existedUser) {
  const LogoutUser = asynchandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id , {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1
             }
         },
         {
@@ -512,5 +512,7 @@ return res.status(200).json(new ApiResponse(200 , user , "Coverimage Updated Suc
  })
 
 
+
+ 
 export {registerUser , LoginUser , LogoutUser , refreshAccessToken , changeCurrentPassword,
         getCurrentUser , updateAccountDetails , UpdateUserAvatar , UpdateUserCoverimage , getUserChannelprofile , getwatchHistory} ; 

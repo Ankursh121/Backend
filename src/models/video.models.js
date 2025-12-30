@@ -21,12 +21,12 @@ const videoSchema = new Schema(
             required : true
         },
         duration : {
-            type : Number,  //cloudnary URL
+            type : Number,  
             required : true
         },
         views : {
-            type : Number,  
-            default : 0
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
         },
         isPublished : {
             type : Boolean,
